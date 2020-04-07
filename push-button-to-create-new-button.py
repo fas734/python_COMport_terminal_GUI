@@ -31,7 +31,7 @@ def main():
     create_button['command'] = lambda arg0=root, arg1="TEXT", arg2=[30,y] : \
                             make_button(arg0, arg1, arg2)
     create_button.place(x=30, y=20)
-    root.mainloop()  
+    root.mainloop()
 
 if __name__ == '__main__':
     main()
