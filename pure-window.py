@@ -3,9 +3,9 @@ from tkinter import ttk
 
 
 def main():
+    root = Tk()
     window_width = 300
     window_height = 250
-    root = Tk()
     screen_width = root.winfo_screenwidth()
     screen_height = root.winfo_screenheight()
     window_pos_x = 300
@@ -14,7 +14,7 @@ def main():
                                     window_pos_x, window_pos_y))
     root.title("Buttons")
 
-    root.mainloop()  
+    root.mainloop()
 
 
 if __name__ == '__main__':
