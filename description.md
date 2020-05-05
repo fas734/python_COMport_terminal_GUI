@@ -4,6 +4,7 @@
 
 ### ИЕРАРХИЯ ЭЛЕМЕНТОВ ПРОГРАММЫ
 
+* COMport  
 * окно программы  
 	\- расположить области()
 
@@ -40,6 +41,7 @@
 
 ### HIERARCHY OF PROGRAM ELEMENTS
 
+* COMport  
 * program window  
 	\- place regions in window()
 

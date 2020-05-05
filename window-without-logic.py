@@ -1,9 +1,12 @@
 from tkinter import Tk, Frame
 from tkinter.constants import *
 from tkinter.ttk import Style, Button, Label, Entry
+import serial
 
-window_width = 360
+window_width = 380
 window_height = 250
+
+COMport = serial.Serial(timeout=0.5)
 
 
 class Command_frame(Frame):
@@ -11,13 +14,14 @@ class Command_frame(Frame):
     def __init__(self, parent, **kwargs):
         super(Command_frame, self).__init__(parent, **kwargs)
         # Button send
-        self.send_button = Button(self, text="SEND")
+        self.send_button = Button(self, text="SEND", command=self.send)
         # 'Field'
         self.command = ''
 
     def send(self):
         self.trim()
-        return None # or call smthng like 'serial.send()'
+        # send if opened else warn
+        print("Sended:", bytes.fromhex(self.command))
 
     def trim(self):
         pass
@@ -72,8 +76,10 @@ class Connection_parameters_frame(Frame):
 
     def __init__(self, parent, **kwargs):
         super(Connection_parameters_frame, self).__init__(parent, **kwargs)
-        self.connect_button = Button(self, text="Connect")
-        self.disconnect_button = Button(self, text="Disconnect")
+        self.connect_button = Button(self, text="Connect", \
+                                     command=self.connect)
+        self.disconnect_button = Button(self, text="Disconnect", \
+                                        command=self.disconnect)
         self.port_number = ""
         self.port_number_label = Label(self, text="Port number:")
         self.port_number_entry = Entry(self, width=10)
@@ -87,12 +93,16 @@ class Connection_parameters_frame(Frame):
         self.port_number_entry.grid(column=1, row=1)
         self.baudrate_label.grid(column=2, row=0)
         self.baudrate_entry.grid(column=2, row=1)
+        self.grid()
 
     def connect(self):
-        pass
+        self.read_parameters()
+        # open if not opened
+        print("Connected")
 
     def disconnect(self):
-        pass
+        # close if opened
+        print("Disconnected")
 
     def read_parameters(self):
         pass
@@ -120,6 +130,11 @@ def place_regions_in_window(window, regions):
     regions['new_command_region'].grid(column=0, row=0, sticky=N)
     regions['saved_commands_region'].grid(column=0, row=1, sticky=NS)
     regions['connection_parameters_region'].grid(column=0, row=2, sticky=S)
+    # infill regions
+    infill_new_command_region(regions['new_command_region'])
+    show_saved_commands(regions['saved_commands_region']) # just to show
+    infill_connection_parameters_region(regions\
+                                        ['connection_parameters_region'])
 
 
 def infill_new_command_region(new_command_region):
@@ -128,13 +143,14 @@ def infill_new_command_region(new_command_region):
 
 def show_saved_commands(parent): # JUST TO SHOW! Will be deleted in next commit
     saved_command_frame = Saved_command_frame(parent)
-    saved_command_frame.command_name_label['text'] = "For show purpose only"
+    saved_command_frame.command = '48 65 6c 6c 6f 21 20 3a 29 0a' # Hello! :)\n
+    saved_command_frame.command_name_label['text'] = "For show purpose\n[" \
+                                            + saved_command_frame.command + ']'
 
 
 def infill_connection_parameters_region(connection_parameters_region):
     connection_parameters_frame \
                 = Connection_parameters_frame(connection_parameters_region)
-    connection_parameters_frame.grid(column=0, row=0)
 
 
 def main():
@@ -145,10 +161,7 @@ def main():
                      'saved_commands_region': None,
                      'connection_parameters_region': None }
     place_regions_in_window(root, window_regions)
-    infill_new_command_region(window_regions['new_command_region'])
-    show_saved_commands(window_regions['saved_commands_region']) # just to show
-    infill_connection_parameters_region(window_regions\
-                                        ['connection_parameters_region'])
+
     root.mainloop()
 
 
