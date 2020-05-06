@@ -1,144 +1,185 @@
+from tkinter import Tk, Frame, StringVar, IntVar
+from tkinter.ttk import Button, Label, Entry
+from tkinter.constants import *
 import serial
-from tkinter import *
-from tkinter import ttk
-import time
+
+window_width = 380
+window_height = 250
+
+COMport = serial.Serial(timeout=0.5)
 
 
-# send byte-like string, takes StringVar()
-def send(command):
-    command_string = command.get()
-    log.insert(1.0, command_string+'\n')
-    COM_port.write(bytearray.fromhex(command_string))
+class Command_frame(Frame):
+
+    def __init__(self, parent, **kwargs):
+        super(Command_frame, self).__init__(parent, **kwargs)
+        # Button send
+        self.send_button = Button(self, text="SEND", command=self.send)
+        # 'Field'
+        self.command = ''
+
+    def send(self):
+        self.trim()
+        # send if opened else warn
+        COMport.write(bytes.fromhex(self.command))
+        print("Sended:", bytes.fromhex(self.command))
+
+    def trim(self):
+        pass
 
 
-def connect(port, baudrate, *args):
-    port = port.get()
-    baudrate = baudrate.get()
+class New_command_frame(Command_frame):
 
-    if port == '':
-    	port = '11'
-    port = "COM" + port
-    if baudrate == 0:
-        baudrate = 57600
+    def __init__(self, parent, **kwargs):
+        super(New_command_frame, self).__init__(parent, **kwargs)
+        self.save_button = Button(self, text="SAVE")
+        self.command_entry = Entry(self, width=15)
 
-    print ('... connection to', port, "with", baudrate, "bods", '...')
+        self.rowconfigure(0, pad=5)
+        self.columnconfigure(0, weight=1, pad=5)
+        self.columnconfigure(1, weight=1, pad=5)
+        self.columnconfigure(2, weight=1, pad=5)
 
-    COM_port.port = port
-    COM_port.baudrate = 56000
-    COM_port.open()
-    print ('Connected to', port)
+        self.save_button.grid(column=0, row=0, sticky=W)
+        self.command_entry.grid(column=1, row=0, sticky=EW)
+        self.send_button.grid(column=2, row=0, sticky=E)
+        self.grid()
 
+        self.save_button['command'] = lambda : self.save()
 
-def disconnect(*args):
-    COM_port.close()
-
-    
-# any send commands to make sure it works
-def test_send(*args):
-    log.insert(1.0, 'test\n')
-    COM_port.write(bytearray.fromhex('FF FF FD 00 FE 0A 00 83 1E 00 02 00 02 58 02 A0 32'))
-    time.sleep(1)
-    COM_port.write(bytearray.fromhex('FF FF FD 00 FE 0A 00 83 1E 00 02 00 02 00 02 A6 E2'))
+    def save(self):
+        Saved_command_frame(window_regions['saved_commands_region'])
 
 
-def make_tack(parent):
-    tack_inframe = ttk.Frame(parent)
-    tack_inframe.grid(column=1, sticky=(W, E))
-    tack_del_button = ttk.Button(tack_inframe, text="DEL")
-    tack_del_button.grid(column=1, row=1, sticky=(W, E))
-    tack_del_button['command'] = lambda widget=tack_inframe : delete_widget(widget)
-    tack_label = ttk.Label(tack_inframe, text="tack_label")
-    tack_label.grid(column=2, row=1, sticky=(W, E))
-    tack_send_button = ttk.Button(tack_inframe, text="SEND")
-    tack_send_button.grid(column=3, row=1, sticky=(W, E))
-    # print("id(tack_inframe)", id(tack_inframe))
-    # return tack_inframe
+class Saved_command_frame(Command_frame):
+
+    def __init__(self, parent, **kwargs):
+        super(Saved_command_frame, self).__init__(parent, **kwargs)
+        self.del_button = Button(self, text="DEL")
+        self.command_name = "command_name"
+        self.command_name_label = Label(self, text=self.command_name)
+
+        self.del_button.grid(column=1, row=0)
+        self.command_name_label.grid(column=2, row=0)
+        self.send_button.grid(column=3, row=0)
+        self.grid()
+
+        self.del_button['command'] = lambda : self.delete()
+
+    def delete(self):
+        self.destroy()
+
+    def change_name(self):
+        pass
 
 
-def delete_widget(widget):
-    widget.destroy()
+class Connection_parameters_frame(Frame):
+
+    def __init__(self, parent, **kwargs):
+        super(Connection_parameters_frame, self).__init__(parent, **kwargs)
+        self.connect_button = Button(self, text="Connect", \
+                                     command=self.connect)
+        self.disconnect_button = Button(self, text="Disconnect", \
+                                        command=self.disconnect)
+        self.port_number = "/dev/ttyUSB0"
+        self.port_number_var = StringVar(value=self.port_number)
+        self.port_number_label = Label(self, text="Port number:")
+        self.port_number_entry = Entry(self, width=12, \
+                                       textvariable=self.port_number_var)
+        self.baudrate = 115200
+        self.baudrate_var = IntVar(value=self.baudrate)
+        self.baudrate_label = Label(self, text="Baudrate:")
+        self.baudrate_entry = Entry(self, width=10, \
+                                    textvariable=self.baudrate_var)
+
+        self.connect_button.grid(column=0, row=0)
+        self.disconnect_button.grid(column=0, row=1)
+        self.port_number_label.grid(column=1, row=0)
+        self.port_number_entry.grid(column=1, row=1)
+        self.baudrate_label.grid(column=2, row=0)
+        self.baudrate_entry.grid(column=2, row=1)
+        self.grid()
+
+    def connect(self):
+        self.read_parameters()
+        # open if not opened
+        COMport.open()
+        print("Connected to", COMport.port, 'at', COMport.baudrate, 'bauds.')
+
+    def disconnect(self):
+        # close if opened
+        COMport.close()
+        print("Disconnected.")
+
+    def read_parameters(self):
+        self.port_number = self.port_number_var.get().strip()
+        # makes port_number_entry show current value of port_number
+        self.port_number_var.set(self.port_number)
+
+        self.baudrate = self.baudrate_var.get()
+        # makes baudrate_entry show current value of baudrate
+        self.baudrate_var.set(self.baudrate)
+
+        COMport.port = self.port_number
+        COMport.baudrate = self.baudrate
 
 
-# start of program
-# creates window and graphical elements
-root = Tk()
-root.title("DarwinTerminal")
-root.geometry("600x300")
-root.columnconfigure(0, weight=1)
-root.rowconfigure(0, weight=1)
-
-main_frame = ttk.Frame(root, padding="3 3 3 3")
-byte_command_frame = ttk.Frame(main_frame)
-tacks_frame = ttk.Frame(main_frame)
-log_frame = ttk.Frame(main_frame)
-portFrame = ttk.Frame(root, padding='3 3 3 3')
-
-# main_frame elements
-byte_command_add_button = ttk.Button(byte_command_frame, text="ADD")
-byte_command_frame_inframe = ttk.Frame(byte_command_frame)
-byte_command_label = ttk.Label(byte_command_frame_inframe, \
-                                text="byte-like command")
-byte_command_entry = ttk.Entry(byte_command_frame_inframe, width=50)
-byte_command_send_button = ttk.Button(byte_command_frame, text="send")
-
-log_label = ttk.Label(log_frame, text="log")
-log = Text(log_frame, height=4)
+def set_window(window):
+    screen_width = window.winfo_screenwidth()
+    screen_height = window.winfo_screenheight()
+    window_pos_x = 300
+    window_pos_y = screen_height - window_height - 28
+    window.geometry("%dx%d+%d+%d" % (window_width, window_height, \
+                                    window_pos_x, window_pos_y))
+    window.title("COMport GUI")
+    window.rowconfigure(0, weight=1)
+    window.rowconfigure(1, weight=1)
+    window.rowconfigure(2, weight=1)
 
 
-# portFrame elements
-COM_port_number_entry = ttk.Entry(portFrame, width=10)
-COM_label = ttk.Label(portFrame, text="COM №")
-baudrate_entry = ttk.Entry(portFrame, width=10)
-baudrate_label = ttk.Label(portFrame, text="baudrate")
-connect_button =  ttk.Button(portFrame, text="Connect")
-disconnect_button =  ttk.Button(portFrame, text="Disconnect", command=disconnect)
-test_send_button = ttk.Button(portFrame, text="Test", command=test_send)
+def place_regions_in_window(window, regions):
+    # create Frame-objects for regions
+    regions['new_command_region'] = Frame(window)
+    regions['saved_commands_region'] = Frame(window)
+    regions['connection_parameters_region'] = Frame(window)
+    # place regions
+    regions['new_command_region'].grid(column=0, row=0, sticky=N)
+    regions['saved_commands_region'].grid(column=0, row=1, sticky=NS)
+    regions['connection_parameters_region'].grid(column=0, row=2, sticky=S)
+    # infill regions
+    infill_new_command_region(regions['new_command_region'])
+    show_saved_commands(regions['saved_commands_region']) # just to show
+    infill_connection_parameters_region(regions\
+                                        ['connection_parameters_region'])
 
 
-# positioning all elements
-main_frame.grid(column=0, row=0, sticky=(N, W, E, S))
-
-byte_command_frame.grid(column=1, row=1, sticky=(N, W, E))
-byte_command_add_button.grid(column=1, row=1, sticky=(W,E))
-byte_command_frame_inframe.grid(column=2, row=1, sticky=(W,E))
-byte_command_label.grid(column=1, row=1, sticky=(W, E))
-byte_command_entry.grid(column=1, row=2, sticky=(W, E))
-byte_command_send_button.grid(column=3, row=1, sticky=W)
-
-tacks_frame.grid(column=1, row=2, sticky=(N,W,E,S))
-tacks_label = ttk.Label(tacks_frame, text="tacks_label")
-tacks_label.grid(column=1, row=0, sticky=(W,E))
-
-log_frame.grid(column=1, row=3, columnspan=2, sticky=(W, E, S))
-log_label.grid(column=1, row=1, sticky=(W, E))
-log.grid(column=1, row=2, sticky=(W, E))
-
-portFrame.grid(column=0, row=1, sticky=(N, W, E, S))
-
-connect_button.grid(column=1, row=1, sticky=W)
-disconnect_button.grid(column=1, row=2, sticky=W)
-COM_label.grid(column=2, row=1)
-COM_port_number_entry.grid(column=2, row=2, sticky=W)
-baudrate_label.grid(column=3, row=1)
-baudrate_entry.grid(column=3, row=2)
-test_send_button.grid(column=10, row=2, sticky=W)
+def infill_new_command_region(new_command_region):
+    new_command_frame = New_command_frame(new_command_region)
 
 
-# bind GUI with logics
-COM_port_number = StringVar()       # number only, like "12" not "COM12"
-byte_command_string = StringVar()
-baudrate_string = StringVar()
+def show_saved_commands(parent): # JUST TO SHOW! Will be deleted in next commit
+    saved_command_frame = Saved_command_frame(parent)
+    saved_command_frame.command = '48 65 6c 6c 6f 21 20 3a 29 0a' # Hello! :)\n
+    saved_command_frame.command_name_label['text'] = "For show purpose\n[" \
+                                            + saved_command_frame.command + ']'
 
-COM_port_number_entry["textvariable"] = COM_port_number
-byte_command_entry["textvariable"] = byte_command_string
-baudrate_entry["textvariable"] = baudrate_string
-connect_button['command'] = lambda arg0=COM_port_number, arg1=baudrate_string : connect(arg0, arg1)
-byte_command_send_button['command'] = lambda arg1=byte_command_string : send(arg1)
-byte_command_add_button['command'] = lambda parent=tacks_frame : make_tack(parent)
 
-COM_port = serial.Serial()
-for child in main_frame.winfo_children(): child.grid_configure(padx=5, pady=5)
+def infill_connection_parameters_region(connection_parameters_region):
+    connection_parameters_frame \
+                = Connection_parameters_frame(connection_parameters_region)
 
-root.bind('<Return>', lambda event, arg1=byte_command_string : send(arg1))
 
-root.mainloop()
+def main():
+    root = Tk()
+    set_window(root)
+    global window_regions
+    window_regions = {'new_command_region': None,
+                     'saved_commands_region': None,
+                     'connection_parameters_region': None }
+    place_regions_in_window(root, window_regions)
+
+    root.mainloop()
+
+
+if __name__ == '__main__':
+    main()
