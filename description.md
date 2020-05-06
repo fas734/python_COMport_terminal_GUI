@@ -11,7 +11,6 @@
 	* область новой команды    // наследует от 'область команды'  
 		\- сохранить()  
 		\* кнопка сохранить  
-		\* поле ввода команды
 
 	* область сохранённых команд    // наследует от 'область команды'  
 		\- поменять имя()  
@@ -33,7 +32,8 @@
 	\- отправить()  
 	\- очистить команду от мусора()  
 	\* кнопка отправить  
-	\* поле команды
+	\* поле команды  
+	\* поле ввода команды
 
 
 <hr id="english">
@@ -52,12 +52,15 @@
 	* saved command frame    // inherits by 'command frame'  
 		\- change label()  
 		\- delete()  
-		\* delete button
+		\* delete button  
+		\* command name
 
 	* connection parameters frame  
 		\- connect()  
 		\- disconnect()  
 		\- read parameters()  
+		\* connect button  
+		\* disconnect button  
 		\* port number  
 		\* baudrate
 
@@ -66,6 +69,7 @@
 	\- send()  
 	\- trim command()  
 	\* send button  
-	\* command
+	\* command  
+	\* command entry
 
 ---

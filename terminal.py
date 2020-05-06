@@ -17,15 +17,35 @@ class Command_frame(Frame):
         self.send_button = Button(self, text="SEND", command=self.send)
         # 'Field'
         self.command = ''
+        self.command_var = StringVar()
+        self.command_entry = Entry(self, width=15, \
+                                   textvariable=self.command_var)
 
     def send(self):
         self.trim()
-        # send if opened else warn
+        #TODO# send if opened else warn
         COMport.write(bytes.fromhex(self.command))
         print("Sended:", bytes.fromhex(self.command))
 
     def trim(self):
-        pass
+        # don't trim if it was cleaned already
+        if self.command == self.command_var.get():
+            return
+        self.command = ''
+        tmp = self.command_var.get()
+        # removes all inappropriate symbols and spaces
+        for l in tmp:
+            if not (l in '0123456789abcdefABCDEF'):
+                tmp = tmp.replace(l,'')
+        # removes last odd symbol if present
+        if len(tmp)%2 == 1:
+            tmp = tmp[:len(tmp)-1]
+        # split command with spaces for convenience
+        for i in range(0,len(tmp),2):
+            self.command = self.command + tmp[i] + tmp[i+1] + ' '
+        # removes last space
+        self.command = self.command[:-1]
+        self.command_var.set(self.command)
 
 
 class New_command_frame(Command_frame):
@@ -33,7 +53,6 @@ class New_command_frame(Command_frame):
     def __init__(self, parent, **kwargs):
         super(New_command_frame, self).__init__(parent, **kwargs)
         self.save_button = Button(self, text="SAVE")
-        self.command_entry = Entry(self, width=15)
 
         self.rowconfigure(0, pad=5)
         self.columnconfigure(0, weight=1, pad=5)
@@ -48,7 +67,8 @@ class New_command_frame(Command_frame):
         self.save_button['command'] = lambda : self.save()
 
     def save(self):
-        Saved_command_frame(window_regions['saved_commands_region'])
+        saved = Saved_command_frame(window_regions['saved_commands_region'])
+        saved.command_var.set(self.command_var.get())
 
 
 class Saved_command_frame(Command_frame):
@@ -59,9 +79,11 @@ class Saved_command_frame(Command_frame):
         self.command_name = "command_name"
         self.command_name_label = Label(self, text=self.command_name)
 
-        self.del_button.grid(column=1, row=0)
-        self.command_name_label.grid(column=2, row=0)
-        self.send_button.grid(column=3, row=0)
+        self.del_button.grid(column=0, row=0, rowspan=2)
+        self.command_entry.grid(column=1, row=0)
+        self.command_entry.grid_remove()    # hide that Entry
+        self.command_name_label.grid(column=1, row=1)
+        self.send_button.grid(column=2, row=0, rowspan=2)
         self.grid()
 
         self.del_button['command'] = lambda : self.delete()
@@ -102,12 +124,12 @@ class Connection_parameters_frame(Frame):
 
     def connect(self):
         self.read_parameters()
-        # open if not opened
+        #TODO# open if not opened
         COMport.open()
         print("Connected to", COMport.port, 'at', COMport.baudrate, 'bauds.')
 
     def disconnect(self):
-        # close if opened
+        #TODO# close if opened
         COMport.close()
         print("Disconnected.")
 
@@ -148,7 +170,7 @@ def place_regions_in_window(window, regions):
     regions['connection_parameters_region'].grid(column=0, row=2, sticky=S)
     # infill regions
     infill_new_command_region(regions['new_command_region'])
-    show_saved_commands(regions['saved_commands_region']) # just to show
+    show_example_of_saved_command(regions['saved_commands_region'])
     infill_connection_parameters_region(regions\
                                         ['connection_parameters_region'])
 
@@ -157,11 +179,11 @@ def infill_new_command_region(new_command_region):
     new_command_frame = New_command_frame(new_command_region)
 
 
-def show_saved_commands(parent): # JUST TO SHOW! Will be deleted in next commit
-    saved_command_frame = Saved_command_frame(parent)
-    saved_command_frame.command = '48 65 6c 6c 6f 21 20 3a 29 0a' # Hello! :)\n
-    saved_command_frame.command_name_label['text'] = "For show purpose\n[" \
-                                            + saved_command_frame.command + ']'
+def show_example_of_saved_command(saved_commands_region): # just to show
+    saved_command_frame = Saved_command_frame(saved_commands_region)
+    saved_command_frame.command_var.set('48 65 6c 6c 6f 21 20 3a 29 0a')
+    saved_command_frame.command_name_label['text'] = "Hello! :)\n[" \
+                                + saved_command_frame.command_var.get() + ']'
 
 
 def infill_connection_parameters_region(connection_parameters_region):
